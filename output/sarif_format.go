@@ -2,18 +2,25 @@ package output
 
 import (
 	"fmt"
-	"github.com/securego/gosec/v2"
 	"strconv"
 	"strings"
+
+	"github.com/securego/gosec/v2"
 )
 
 type sarifLevel string
+type sarifBaselineState string
 
 const (
 	sarifNone    = sarifLevel("none")
 	sarifNote    = sarifLevel("note")
 	sarifWarning = sarifLevel("warning")
 	sarifError   = sarifLevel("error")
+
+	sarifBaselineStateNew       = sarifBaselineState("new")
+	sarifBaselineStateUnChanged = sarifBaselineState("unchanged")
+	sarifBaselineStateUpdated   = sarifBaselineState("updated")
+	sarifBaselineStateAbsent    = sarifBaselineState("absent")
 )
 
 type sarifProperties struct {
@@ -21,12 +28,17 @@ type sarifProperties struct {
 }
 
 type sarifRule struct {
-	ID               string           `json:"id"`
-	Name             string           `json:"name"`
-	ShortDescription *sarifMessage    `json:"shortDescription"`
-	FullDescription  *sarifMessage    `json:"fullDescription"`
-	Help             *sarifMessage    `json:"help"`
-	Properties       *sarifProperties `json:"properties"`
+	ID                   string              `json:"id"`
+	Name                 string              `json:"name"`
+	ShortDescription     *sarifMessage       `json:"shortDescription"`
+	FullDescription      *sarifMessage       `json:"fullDescription"`
+	Help                 *sarifMessage       `json:"help"`
+	Properties           *sarifProperties    `json:"properties"`
+	DefaultConfiguration *sarifConfiguration `json:"defaultConfiguration"`
+}
+
+type sarifConfiguration struct {
+	Level sarifLevel `json:"level"`
 }
 
 type sarifArtifactLocation struct {
@@ -54,11 +66,12 @@ type sarifMessage struct {
 }
 
 type sarifResult struct {
-	RuleID    string           `json:"ruleId"`
-	RuleIndex int              `json:"ruleIndex"`
-	Level     sarifLevel       `json:"level"`
-	Message   *sarifMessage    `json:"message"`
-	Locations []*sarifLocation `json:"locations"`
+	RuleID        string             `json:"ruleId"`
+	RuleIndex     int                `json:"ruleIndex"`
+	Level         sarifLevel         `json:"level"`
+	Message       *sarifMessage      `json:"message"`
+	Locations     []*sarifLocation   `json:"locations"`
+	BaselineState sarifBaselineState `json:"baselineState"`
 }
 
 type sarifDriver struct {
@@ -107,6 +120,9 @@ func buildSarifRule(issue *gosec.Issue) *sarifRule {
 		},
 		Properties: &sarifProperties{
 			Tags: []string{fmt.Sprintf("CWE-%s", issue.Cwe.ID), issue.Severity.String()},
+		},
+		DefaultConfiguration: &sarifConfiguration{
+			Level: getSarifLevel(issue.Severity.String()),
 		},
 	}
 }

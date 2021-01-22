@@ -200,7 +200,8 @@ func convertToSarifReport(rootPaths []string, data *reportInfo) (*sarifReport, e
 			Message: &sarifMessage{
 				Text: issue.What,
 			},
-			Locations: locations,
+			Locations:     locations,
+			BaselineState: sarifBaselineStateNew,
 		}
 
 		results = append(results, result)
